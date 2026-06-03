@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  fitness-app:
+  fitness_trainer:
     image: python:3.11-slim
-    container_name: fitness_trainer_app
+    container_name: fitness_telegram_bot
     restart: always
     volumes:
       - ./app:/app
@@ -11,6 +11,7 @@ services:
     working_dir: /app
     environment:
       - DB_PATH=/data/fitness.db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     command: sh -c "pip install -r requirements.txt && python bot.py"
 
   sqlite-web:
