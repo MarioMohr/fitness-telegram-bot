@@ -3,7 +3,6 @@
 # Configuration Paths
 REPO_DIR="/home/mario/fitness"
 APP_DIR="/home/mario/fitness/app"
-DATA_DIR="/home/mario/fitness/data"
 SAMBA_DIR="/mnt/media/backups/docker"
 USB_DIR="/mnt/MiniUSB/docker"
 BACKUP_NAME="fitness_telegram_bot_$(date +%Y%m%d_%H%M%S).tar.gz"
@@ -20,9 +19,9 @@ fi
 echo "Stopping fitness_trainer to secure the database..."
 cd "$APP_DIR" && docker compose stop fitness_trainer
 
-echo "Archiving private secrets and database..."
-# This cleanly packages the .env file from app and the live database file from data
-tar -czf "$BACKUP_TMP" -C "$APP_DIR" .env -C "$DATA_DIR" fitness.db
+echo "Archiving whole fitness directory (excluding git internals)..."
+# Changes to the parent fitness directory, excludes .git, and compresses everything else
+tar -czf "$BACKUP_TMP" -C "$REPO_DIR" --exclude='.git' .
 
 # --- Distribution to Storage ---
 if [ -d "$SAMBA_DIR" ]; then
