@@ -6,12 +6,15 @@ A lightweight, containerized Python Telegram bot deployed on a headless Debian s
 
 ## 📁 Repository Structure
 
-    fitness/                 # Git repository root folder
-    ├── app/                 # Main application directory
-    │   ├── bot.py           # Python bot source script
-    │   ├── backup.sh        # Custom backup, git automation, and restart script
-    │   └── docker-compose.yml  # Docker Compose stack configuration file
-    └── data/                # Persistent SQLite database storage mount folder
+    fitness/                         # Git repository root folder
+    ├── app/                         # Main application execution context
+    │   ├── bot.py                   # Main Python bot application entry point script
+    │   ├── backup.sh                # Automation script for backups, git pushes, and container restarts
+    │   └── requirements.txt         # High level pinned third party Python package dependencies
+    ├── data/                        # Local state persistence storage directory
+    │   └── fitness.db               # Live production SQLite transactional relational database file
+    ├── docker-compose.yml           # Production container runtime virtualization orchestration stack
+    └── .env                         # Template reference tracking required environment variables
 
 ---
 
@@ -35,7 +38,7 @@ A lightweight, containerized Python Telegram bot deployed on a headless Debian s
 4. Copy the secure, randomized alphanumerical token string provided. This string links your script to the Telegram API.
 
 ### 2. Configure Your Environment File
-Create a file named exactly `.env` directly inside your `app/` folder. Add your copied token string without using any surrounding quotes:
+Create a file named exactly `.env` directly inside your main folder ('fitness/'). Add your copied token string without using any surrounding quotes:
 
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
 
@@ -73,17 +76,20 @@ The `fitness.db` file is managed dynamically by the application layer:
 
 ### Run the Bot Without Backups
 To launch the service stack, build your image layer, and execute the polling process safely in the background without invoking external bash distributions or remote code additions:
-    cd /home/mario/fitness/app
+
+    cd /home/mario/fitness
     docker compose up -d --build
 
 ### Stop the Bot Safely
 To halt the execution context and release host network bindings without deleting persistent databases:
-    cd /home/mario/fitness/app
+
+    cd /home/mario/fitness
     docker compose down
 
 ### View Live Execution Logs
 To inspect application logs or debug active communication threads:
-    cd /home/mario/fitness/app
+
+    cd /home/mario/fitness
     docker compose logs -f fitness_trainer
 
 ---
@@ -94,6 +100,7 @@ The provided `app/backup.sh` deployment script allows you to perform structural 
 
 ### 1. Tailor Your Backup Storage Locations
 Open `app/backup.sh` in your editor and adjust the global system location strings to match your server mounts:
+
     REPO_DIR="/home/mario/fitness"
     APP_DIR="/home/mario/fitness/app"
     SAMBA_DIR="/mnt/media/backups/docker"  # Target storage share folder path
@@ -101,9 +108,11 @@ Open `app/backup.sh` in your editor and adjust the global system location string
 
 ### 2. Run the Automation Routine
 Make sure the script has execution rights on your filesystem:
+
     chmod +x /home/mario/fitness/app/backup.sh
 
 Execute it whenever you want to commit code alterations, back up metrics, or trigger safe container updates:
+
     /home/mario/fitness/app/backup.sh
 
 **What the script handles in sequence:**
