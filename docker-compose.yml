@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  fitness-app:
+    image: python:3.11-slim
+    container_name: fitness_trainer_app
+    restart: always
+    volumes:
+      - ./app:/app
+      - ./data:/data
+    working_dir: /app
+    environment:
+      - DB_PATH=/data/fitness.db
+    command: sh -c "pip install -r requirements.txt && python bot.py"
+
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: fitness_db_web
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - SQLITE_DATABASE=fitness.db
+

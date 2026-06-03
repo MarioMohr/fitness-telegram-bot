@@ -1,0 +1,15 @@
+# Block private databases
+*.db
+*.db-journal
+
+# Block environment config files down in any folder
+.env
+app/.env
+
+# Block backup archive snapshots
+*.tar.gz
+
+# Block system overhead files
+__pycache__/
+/tmp/
+
