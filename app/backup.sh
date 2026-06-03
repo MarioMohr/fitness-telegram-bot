@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Configuration Paths
+REPO_DIR="/home/mario/fitness"
 APP_DIR="/home/mario/fitness/app"
+DATA_DIR="/home/mario/fitness/data"
 SAMBA_DIR="/mnt/NAS/backups/docker"
 USB_DIR="/mnt/MiniUSB/docker"
 BACKUP_NAME="fitness_telegram_bot_$(date +%Y%m%d).tar.gz"
@@ -19,7 +21,8 @@ echo "Stopping fitness_trainer to secure the database..."
 cd "$APP_DIR" && docker compose stop fitness_trainer
 
 echo "Archiving private secrets and database..."
-tar -czf "$BACKUP_TMP" -C "$APP_DIR" .env -C /data fitness.db 2>/dev/null || tar -czf "$BACKUP_TMP" -C "$APP_DIR" .env data/fitness.db
+# This cleanly packages the .env file from app and the live database file from data
+tar -czf "$BACKUP_TMP" -C "$APP_DIR" .env -C "$DATA_DIR" fitness.db
 
 # --- Distribution to Storage ---
 if [ -d "$SAMBA_DIR" ]; then
@@ -40,12 +43,15 @@ rm "$BACKUP_TMP"
 
 # --- Codebase Version Control ---
 echo "Pushing code updates to GitHub..."
+cd "$REPO_DIR"
 git add .
 git commit -m "$commit_msg"
 git push origin main
 echo "✅ Public codebase pushed to GitHub."
 
+# --- Restart Application ---
 echo "Restarting fitness_trainer container with upgrades..."
+cd "$APP_DIR"
 docker compose up -d --build fitness_trainer
 
 echo "🚀 Upgrade, redundant backups, and GitHub deployment complete!"
