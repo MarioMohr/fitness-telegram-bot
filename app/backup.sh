@@ -6,7 +6,7 @@ APP_DIR="/home/mario/fitness/app"
 DATA_DIR="/home/mario/fitness/data"
 SAMBA_DIR="/mnt/NAS/backups/docker"
 USB_DIR="/mnt/MiniUSB/docker"
-BACKUP_NAME="fitness_telegram_bot_$(date +%Y%m%d).tar.gz"
+BACKUP_NAME="fitness_telegram_bot_$(date +%Y%m%d_%H%M%S).tar.gz"
 BACKUP_TMP="/tmp/$BACKUP_NAME"
 
 # Prompt for a commit message so your GitHub history is clean
