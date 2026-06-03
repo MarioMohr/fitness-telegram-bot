@@ -5,12 +5,20 @@ import zoneinfo
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
+# Configuration settings sourced from system environment variables
 DB_PATH = os.environ.get("DB_PATH", "/data/fitness.db")
 MY_TZ = zoneinfo.ZoneInfo("Asia/Kuala_Lumpur")
 
 def init_db():
+    """
+    Initializes the local SQLite database connection layer.
+    Automatically instantiates the required schemas if they are missing
+    and handles live column updates seamlessly.
+    """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Track the historical timestamps and operational status changes of the local pool
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pool_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +28,8 @@ def init_db():
             status TEXT
         )
     ''')
+    
+    # Store all direct metric variables for nutrition, workouts, and body weight logs
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_log (
             datum TEXT PRIMARY KEY,
@@ -36,14 +46,33 @@ def init_db():
             yoga_video TEXT DEFAULT ''
         )
     ''')
+    
+    # Context schema for operational settings such as vacation modes
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+    # Fallback default flags
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('vacation', '0')")
+    
+    # Ensure live tracking database formats upgrade smoothly without data losses
     try:
         cursor.execute("ALTER TABLE daily_log ADD COLUMN yoga_video TEXT DEFAULT ''")
     except sqlite3.OperationalError:
         pass
+    try:
+        cursor.execute("ALTER TABLE daily_log ADD COLUMN dpc_walk INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+        
     conn.commit()
     conn.close()
 
 def get_main_keyboard():
+    """Builds the persistent visual home dashboard keyboard layout."""
     keyboard = [
         ['🏊 Pool Status', '🥩 Nutrition & Sport'],
         ['📊 Statistics', '⚖️ Log Weight']
@@ -51,9 +80,11 @@ def get_main_keyboard():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 def get_cancel_keyboard():
+    """Builds a swift cancel button menu sequence to back out of data prompts."""
     return ReplyKeyboardMarkup([['⬅️ Cancel']], resize_keyboard=True)
 
 def get_yoga_keyboard():
+    """Generates the localized multi-tier session selection view for DDP Yoga videos."""
     keyboard = [
         ['⚡ Energy', '🔥 Red Hot Core'],
         ['🏃 Fat Burner', '🌱 Beginner Beginner'],
@@ -67,12 +98,14 @@ def get_yoga_keyboard():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Answers incoming entry-level execution calls and builds the main interface."""
     await update.message.reply_text(
         "Your Fitness Trainer is ready. Choose an option:",
         reply_markup=get_main_keyboard()
     )
 
 def get_status_msg(text: str) -> str:
+    """Evaluates text strings to return custom success validation updates."""
     if "Proteins" in text: return "Meat proteins logged!"
     if "Magnesium" in text: return "100% Cacao logged!"
     if "Electrolytes" in text: return "100 Plus Zero logged!"
@@ -82,6 +115,7 @@ def get_status_msg(text: str) -> str:
     return "Logged!"
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Processes user text signals, controls menu navigation, and commits logs to disk."""
     text = update.message.text
     jetzt = datetime.now(MY_TZ)
     heute = jetzt.strftime("%Y-%m-%d")
@@ -92,7 +126,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Action canceled. Back to main menu.", reply_markup=get_main_keyboard())
         return
 
-    # --- WEIGHT INPUT ---
+    # --- WEIGHT INPUT RUNTIME ---
     if user_data.get('state') == 'waiting_for_weight':
         try:
             val = float(text.replace(',', '.'))
@@ -110,7 +144,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Please send a valid number or press Cancel.", reply_markup=get_cancel_keyboard())
             return
 
-    # --- LAPS INPUT ---
+    # --- LAPS SWIMMING RUNTIME ---
     if user_data.get('state') == 'waiting_for_laps':
         try:
             anzahl = int(text)
@@ -127,8 +161,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Please send a whole number for the laps or press Cancel.", reply_markup=get_cancel_keyboard())
             return
 
-    # --- YOGA SELECTION HANDLING ---
+    # --- DDP YOGA VIDEO SELECTION PROCESSING ---
     if user_data.get('state') == 'waiting_for_yoga_selection':
+        # Clean up button strings by dropping structural design emojis prior to database serialization
         cleaned_video = text.strip().replace('⚡ ', '').replace('🔥 ', '').replace('🏃 ', '').replace('🌱 ', '').replace('📐 ', '').replace('💎 ', '').replace('💪 ', '').replace('🧱 ', '').replace('🐦 ', '').replace('🌋 ', '').replace('👴 ', '').replace('💥 ', '').replace('🚨 ', '').replace('✈️ ', '')
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -140,7 +175,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Awesome! Logged entry for DDP Yoga: {cleaned_video}", reply_markup=get_main_keyboard())
         return
 
-    # POOL MENU
+    # --- POOL CONTROLLER INTERFACES ---
     if text == '🏊 Pool Status':
         keyboard = [
             ['🟢 Pool is EMPTY', '🔴 Pool is FULL'],
@@ -164,7 +199,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         await update.message.reply_text(f"Pool status updated to {status}.", reply_markup=get_main_keyboard())
 
-    # NUTRITION & SPORT MENU
+    # --- DIET, SPORT, AND RECOVERY DASHBOARDS ---
     elif text == '🥩 Nutrition & Sport':
         keyboard = [
             ['✅ Proteins (Meat)', '✅ Magnesium (Cacao)'],
@@ -208,6 +243,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == '⬅️ Back':
         await update.message.reply_text("Main Menu", reply_markup=get_main_keyboard())
     
+    # --- FLUID RECORD EXTRACTION SEQUENCES ---
     else:
         if any(x in text.lower() for x in ["saft", "wasser", "dragon", "juice", "melon"]):
             conn = sqlite3.connect(DB_PATH)
@@ -221,6 +257,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Command not recognized.", reply_markup=get_main_keyboard())
 
 def main():
+    """Initializes standard systems, reads tokens securely, and launches polling workers."""
     init_db()
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     application = Application.builder().token(token).build()

@@ -1,10 +1,14 @@
 #!/bin/bash
 
-# Configuration Paths
+# ==============================================================================
+# ENVIRONMENT AND TARGET BACKUP DIRECTORY PATH CONFIGURATIONS
+# Modify these structural variables to align with your mount layout architectures.
+# ==============================================================================
 REPO_DIR="/home/mario/fitness"
 APP_DIR="/home/mario/fitness/app"
 SAMBA_DIR="/mnt/media/backups/docker"
 USB_DIR="/mnt/MiniUSB/docker"
+
 BACKUP_NAME="fitness_telegram_bot_$(date +%Y%m%d_%H%M%S).tar.gz"
 BACKUP_TMP="/tmp/$BACKUP_NAME"
 
