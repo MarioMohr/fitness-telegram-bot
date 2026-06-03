@@ -222,8 +222,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     init_db()
-import os
-
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     application = Application.builder().token(token).build()
 
