@@ -39,14 +39,18 @@ A lightweight, containerized Python Telegram bot deployed on a headless Debian s
 
 ### 2. Configure Your Environment File
 Create a file named exactly `.env` directly inside your main folder ('fitness/'). Add your copied token string without using any surrounding quotes:
-
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
+
+To guarantee absolute database integrity, individual interaction restrictions are handled explicitly at the application logic layer. 
+Access is strictly managed via a numerical system identifier array defined within the environment variable configuration file. Open your local `.env` file and append the allowed profiles:
+
+    ALLOWED_USER_IDS=123456789,987654321,111222333
+
 
 ---
 
 ## 📦 Host Operating System Engine Installations
 
-Run the respective package manager commands on your server to install Docker and the Docker Compose plugin:
 
 ### Debian / Ubuntu Linux
     sudo apt update

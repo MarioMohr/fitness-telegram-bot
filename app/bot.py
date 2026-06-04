@@ -9,6 +9,10 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 DB_PATH = os.environ.get("DB_PATH", "/data/fitness.db")
 MY_TZ = zoneinfo.ZoneInfo("Asia/Kuala_Lumpur")
 
+# Read and parse the comma split whitelist configuration
+raw_allowed_ids = os.environ.get("ALLOWED_USER_IDS", "")
+ALLOWED_USERS = {int(uid.strip()) for uid in raw_allowed_ids.split(",") if uid.strip()}
+
 def init_db():
     """
     Initializes the local SQLite database connection layer.
@@ -74,14 +78,14 @@ def init_db():
 def get_main_keyboard():
     """Builds the persistent visual home dashboard keyboard layout."""
     keyboard = [
-        ['🏊 Pool Status', '🥩 Nutrition & Sport'],
+        ['🏊 Pool Status', '🥗 Nutrition & Sport'],
         ['📊 Statistics', '⚖️ Log Weight']
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 def get_cancel_keyboard():
     """Builds a swift cancel button menu sequence to back out of data prompts."""
-    return ReplyKeyboardMarkup([['⬅️ Cancel']], resize_keyboard=True)
+    return ReplyKeyboardMarkup([['🔙 Cancel']], resize_keyboard=True)
 
 def get_yoga_keyboard():
     """Generates the localized multi-tier session selection view for DDP Yoga videos."""
@@ -92,13 +96,45 @@ def get_yoga_keyboard():
         ['💪 Strength Builder', '🧱 Below The Belt'],
         ['🐦 The Black Crow', '🌋 Terrible 10s'],
         ['👴 Kickin Old School', '💥 100 Push Up Challenge'],
-        ['🚨 Living In The Red Zone', '✈️ Harrier Jet'],
-        ['⬅️ Cancel']
+        ['🚨 Living In The Red Zone', '🛩️ Harrier Jet'],
+        ['🔙 Cancel']
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+async def is_authorized(update: Update) -> bool:
+    """Validates the identity of the incoming user profile against the whitelist."""
+    if not update or not update.effective_user:
+        return False
+        
+    user_id = update.effective_user.id
+    if user_id in ALLOWED_USERS:
+        return True
+        
+    # Heavy documentation and logging for unauthorized runtime interactions
+    user = update.effective_user
+    timestamp = datetime.now(MY_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    incoming_text = update.message.text if update.message and update.message.text else "[No Text/Command]"
+    
+    print("==================================================")
+    print("SECURITY WARNING: BLOCKED UNAUTHORIZED USER ACCESS")
+    print(f"Timestamp:   {timestamp}")
+    print(f"User ID:     {user_id}")
+    print(f"Username:    @{user.username if user.username else 'None'}")
+    print(f"First Name:  {user.first_name if user.first_name else 'None'}")
+    print(f"Last Name:   {user.last_name if user.last_name else 'None'}")
+    print(f"Message:     {incoming_text}")
+    print("Action:      Dropped request. Database writes locked.")
+    print("==================================================")
+    
+    # Send a private security alert back to the unauthorized profile
+    if update.message:
+        await update.message.reply_text("Access denied. This bot is completely private.")
+    return False
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Answers incoming entry-level execution calls and builds the main interface."""
+    if not await is_authorized(update):
+        return
     await update.message.reply_text(
         "Your Fitness Trainer is ready. Choose an option:",
         reply_markup=get_main_keyboard()
@@ -116,12 +152,15 @@ def get_status_msg(text: str) -> str:
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes user text signals, controls menu navigation, and commits logs to disk."""
+    if not await is_authorized(update):
+        return
+        
     text = update.message.text
     jetzt = datetime.now(MY_TZ)
     heute = jetzt.strftime("%Y-%m-%d")
     user_data = context.user_data
 
-    if text == '⬅️ Cancel':
+    if text == '🔙 Cancel':
         user_data['state'] = None
         await update.message.reply_text("Action canceled. Back to main menu.", reply_markup=get_main_keyboard())
         return
@@ -163,8 +202,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- DDP YOGA VIDEO SELECTION PROCESSING ---
     if user_data.get('state') == 'waiting_for_yoga_selection':
-        # Clean up button strings by dropping structural design emojis prior to database serialization
-        cleaned_video = text.strip().replace('⚡ ', '').replace('🔥 ', '').replace('🏃 ', '').replace('🌱 ', '').replace('📐 ', '').replace('💎 ', '').replace('💪 ', '').replace('🧱 ', '').replace('🐦 ', '').replace('🌋 ', '').replace('👴 ', '').replace('💥 ', '').replace('🚨 ', '').replace('✈️ ', '')
+        cleaned_video = text.strip().replace('⚡ ', '').replace('🔥 ', '').replace('🏃 ', '').replace('🌱 ', '').replace('📐 ', '').replace('💎 ', '').replace('💪 ', '').replace('🧱 ', '').replace('🐦 ', '').replace('🌋 ', '').replace('👴 ', '').replace('💥 ', '').replace('🚨 ', '').replace('🛩️ ', '')
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("INSERT OR IGNORE INTO daily_log (datum) VALUES (?)", (heute,))
@@ -178,15 +216,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- POOL CONTROLLER INTERFACES ---
     if text == '🏊 Pool Status':
         keyboard = [
-            ['🟢 Pool is EMPTY', '🔴 Pool is FULL'],
+            ['🏊 Pool is EMPTY', '🔴 Pool is FULL'],
             ['🌧️ Raining (Empty)', '🎉 Public Holiday'],
-            ['⬅️ Back']
+            ['🔙 Back']
         ]
         await update.message.reply_text("What is the situation at the pool right now?", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
     
-    elif text in ['🟢 Pool is EMPTY', '🔴 Pool is FULL', '🌧️ Raining (Empty)', '🎉 Public Holiday']:
+    elif text in ['🏊 Pool is EMPTY', '🔴 Pool is FULL', '🌧️ Raining (Empty)', '🎉 Public Holiday']:
         status_map = {
-            '🟢 Pool is EMPTY': 'FREI',
+            '🏊 Pool is EMPTY': 'FREI',
             '🔴 Pool is FULL': 'VOLL',
             '🌧️ Raining (Empty)': 'REGEN_LEER',
             '🎉 Public Holiday': 'FEIERTAG'
@@ -200,13 +238,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Pool status updated to {status}.", reply_markup=get_main_keyboard())
 
     # --- DIET, SPORT, AND RECOVERY DASHBOARDS ---
-    elif text == '🥩 Nutrition & Sport':
+    elif text == '🥗 Nutrition & Sport':
         keyboard = [
             ['✅ Proteins (Meat)', '✅ Magnesium (Cacao)'],
             ['✅ Electrolytes (100+)', '✅ Cashews'],
             ['🏊 Log Swim Laps', '🚶 DPC Walk'],
             ['✅ DDP Yoga', '✅ Breathing Exercises'],
-            ['⬅️ Back']
+            ['🔙 Back']
         ]
         await update.message.reply_text("Select an activity or meal item:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
     
@@ -240,7 +278,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_data['state'] = 'waiting_for_weight'
         await update.message.reply_text("Send me your estimated weight as a number:", reply_markup=get_cancel_keyboard())
 
-    elif text == '⬅️ Back':
+    elif text == '🔙 Back':
         await update.message.reply_text("Main Menu", reply_markup=get_main_keyboard())
     
     # --- FLUID RECORD EXTRACTION SEQUENCES ---
