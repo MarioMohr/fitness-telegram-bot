@@ -3,7 +3,6 @@
 A lightweight, containerized Python Telegram bot deployed on a headless Debian server to track daily fitness activities, swimming pool statistics, nutrition elements, and weight logging.
 
 <img width="660" height="1434" alt="IMG_5915" src="https://github.com/user-attachments/assets/4337838b-7a49-44b7-a687-e9774536a047" />
-<img width="660" height="1434" alt="IMG_5916" src="https://github.com/user-attachments/assets/caa5f1ae-1ed0-4d0c-b213-c8e4398d6ff0" />
 
 ---
 
