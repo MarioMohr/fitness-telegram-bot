@@ -37,15 +37,20 @@ A lightweight, containerized Python Telegram bot deployed on a headless Debian s
 3. Follow the prompt instructions to assign a descriptive name and a unique username ending in `_bot`.
 4. Copy the secure, randomized alphanumerical token string provided. This string links your script to the Telegram API.
 
-### 2. Configure Your Environment File
+### 2. Get Your Telegram UserID
+1. Open a chat with the official **@userinfobot** account inside Telegram.
+2. Send him any Text to get your UserID.
+3. Repeat step 1 and 2 for each account you have.
+
+### 3. Configure Your Environment File
 Create a file named exactly `.env` directly inside your main folder ('fitness/'). Add your copied token string without using any surrounding quotes:
+
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
 
 To guarantee absolute database integrity, individual interaction restrictions are handled explicitly at the application logic layer. 
-Access is strictly managed via a numerical system identifier array defined within the environment variable configuration file. Open your local `.env` file and append the allowed profiles:
+Access is strictly managed via a numerical system identifier array defined within the environment variable configuration too. Append the allowed profiles:
 
     ALLOWED_USER_IDS=123456789,987654321,111222333
-
 
 ---
 
