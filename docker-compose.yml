@@ -1,4 +1,3 @@
-
 services:
   fitness_trainer:
     image: python:3.11-slim
@@ -11,6 +10,7 @@ services:
     environment:
       - DB_PATH=/data/fitness.db
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ALLOWED_USER_IDS=${ALLOWED_USER_IDS}
     command: sh -c "pip install -r requirements.txt && python bot.py"
 
   sqlite-web:
